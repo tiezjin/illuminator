@@ -1,16 +1,15 @@
 
 
 
-import { Plugin, TFile, Editor, Menu, Notice, normalizePath, Modal, ButtonComponent, App, TAbstractFile, moment, Vault} from 'obsidian';
+import { Plugin, TFile, Editor, Menu, Notice, normalizePath, Modal, ButtonComponent, App, TAbstractFile, Vault} from 'obsidian';
 import { workerCode } from './engine';
 import { IlluminatorSettings, Default_Settings, IlluminatorSettingTab } from './settings';
 import { t } from './lang';
 
-
 const SUPPORTED_FORMATS = ["png", "jpg", "jpeg", "webp"];
 
 export default class Illuminator extends Plugin {
-    settings: IlluminatorSettings;
+    settings!: IlluminatorSettings;
 
     async onload() {
         await this.loadSettings();
@@ -19,6 +18,8 @@ export default class Illuminator extends Plugin {
         // 1. THE PASTE HANDLER
         this.registerEvent(
             this.app.workspace.on('editor-paste', (evt: ClipboardEvent, editor: Editor) => {
+                if (evt.defaultPrevented) return;
+                
                 if (!this.settings.enableAutoIllumination) return;
 
                 const files = evt.clipboardData?.files;
@@ -34,7 +35,6 @@ export default class Illuminator extends Plugin {
                     evt.preventDefault();
                     
                     // Trigger the async processing without blocking the event loop
-                    // this.handlePaste(imageFiles, editor);
                     void this.handlePaste(imageFiles, editor).catch(err => {
                         console.error("Illuminator: Failed to process pasted images", err);
                         new Notice(t.ERROR_PROCESS_PASTE);
@@ -151,6 +151,9 @@ export default class Illuminator extends Plugin {
             worker.onmessage = (e) => {
                 worker.terminate();
                 URL.revokeObjectURL(workerUrl);
+                
+                const data = e.data as { error?: string; blob: Blob; ext: string };
+
                 if (e.data.error) {
                     console.error("Illuminator Error:", e.data.error);
                     resolve(null);
@@ -171,6 +174,7 @@ async saveAndInsert(blob: Blob, ext: string, editor: Editor, originalName: strin
     try {
         let baseName: string;
         if (isPaste) {
+            const moment = (window as any).moment;
             baseName = "IMG_" + moment().format("YYYYMMDDHHmmss");
         } else {
             const lastDotIndex = originalName.lastIndexOf(".");
@@ -184,7 +188,7 @@ async saveAndInsert(blob: Blob, ext: string, editor: Editor, originalName: strin
         // This automatically checks the user's settings and provides the full unique path
         const uniquePath = await this.app.fileManager.getAvailablePathForAttachment(
             fileName, 
-            activeFile ? activeFile.path : ""
+            (activeFile ? activeFile.path : "") as string
         );
 
         const buffer = await blob.arrayBuffer();

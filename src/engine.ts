@@ -3,10 +3,22 @@
 /**
  * Image processing engine designed to run inside a Web Worker.
  * Handles background removal and WebP/PNG conversion.
+ * 
  */
+
+interface WorkerInputData {
+    bitmap: ImageBitmap;
+    threshold: number;
+    doTransparency: boolean;
+    doWebP: boolean;
+}
+
+
 export const workerCode = () => {
     self.onmessage = async (e: MessageEvent) => {
-        const { bitmap, threshold, doTransparency, doWebP } = e.data;
+        const { bitmap, threshold, doTransparency, doWebP } = e.data as WorkerInputData;
+
+        let isBitmapClosed = false;
 
         try {
             // 1. Initialize OffscreenCanvas 
@@ -15,7 +27,8 @@ export const workerCode = () => {
 
             if (!ctx) {
                 self.postMessage({ success: false, error: "Could not get canvas context" });
-                bitmap.close();           //  close before return
+                bitmap.close();
+                isBitmapClosed = true;           //  close before return
                 return;
             }
 
@@ -24,6 +37,7 @@ export const workerCode = () => {
 
             // 3. Close the bitmap immediately to free up memory 
             bitmap.close();
+            isBitmapClosed = true;
 
             // 4. Perform Pixel Manipulation
             if (doTransparency) {
@@ -61,8 +75,9 @@ export const workerCode = () => {
             });
 
         } finally {
-            // Clean up resources if needed
-            bitmap?.close();
+            if (!isBitmapClosed && bitmap) {
+                bitmap.close();
+            }
         } 
     };
 };

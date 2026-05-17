@@ -34,8 +34,6 @@ export class IlluminatorSettingTab extends PluginSettingTab {
     display(): void {
         const { containerEl } = this;
         containerEl.empty();
-        // containerEl.createEl('h2', { text: t.ILLUMINATOR_SETTINGS });
-        // Use the Setting API:
         new Setting(containerEl)
             .setName(t.ILLUMINATOR_SETTINGS)
             .setHeading();

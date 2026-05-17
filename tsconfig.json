@@ -1,30 +1,19 @@
 {
-	"compilerOptions": {
-		"baseUrl": "src",
-		"inlineSourceMap": true,
-		"inlineSources": true,
-		"module": "ESNext",
-		"target": "ES6",
-		"allowJs": true,
-		"noImplicitAny": true,
-		"noImplicitThis": true,
-		"noImplicitReturns": true,
-		"moduleResolution": "node",
-		"importHelpers": true,
-		"noUncheckedIndexedAccess": true,
-		"isolatedModules": true,
-		"strictNullChecks": true,
-		"strictBindCallApply": true,
-		"allowSyntheticDefaultImports": true,
-		"useUnknownInCatchVariables": true,
-		"lib": [
-			"DOM",
-			"ES5",
-			"ES6",
-			"ES7"
-		]
-	},
-	"include": [
-		"src/**/*.ts"
-	]
+  "compilerOptions": {
+    "target": "ES2022",                // Obsidian runs on modern Chromium; ES2022 is perfectly supported
+    "module": "ESNext",
+    "moduleResolution": "bundler",     // Matches what Esbuild/Vite uses to bundle your plugin
+    "lib": ["DOM", "ES2022"],          // Access to both modern browser APIs and modern JS features
+    
+    "strict": true,                    // Keeps your code robust and prevents runtime plugin crashes
+    "noUncheckedIndexedAccess": true,  // Keeps your precise array security for data processing
+    
+    "allowJs": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,              // Prevents TypeScript from complaining about Obsidian's internal type files
+    "isolatedModules": true
+  },
+  "include": [
+    "src/**/*.ts"
+  ]
 }
