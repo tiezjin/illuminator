@@ -10,6 +10,10 @@ jobs:
     build:
         runs-on: ubuntu-latest
 
+        # FIX #1: Grant explicit write permissions to let the runner build the release
+        permissions:
+            contents: write
+
         steps:
             - name: Checkout Code
               uses: actions/checkout@v4
@@ -26,18 +30,6 @@ jobs:
             - name: Build Plugin
               run: npm run build
 
-            - name: Package Assets
-              id: package
-              run: |
-                  # Verifies files exist before running release step
-                  echo "Validating production build artifacts..."
-                  ls -la main.js manifest.json
-                  if [ -f styles.css ]; then
-                    echo "has_css=true" >> $GITHUB_OUTPUT
-                  else
-                    echo "has_css=false" >> $GITHUB_OUTPUT
-                  fi
-
             - name: Create GitHub Release
               id: create_release
               uses: softprops/action-gh-release@v2
@@ -47,9 +39,9 @@ jobs:
                   generate_release_notes: true
                   draft: false
                   prerelease: false
+                  # FIX #2: Explicit, clean asset mapping with no empty-string bugs
                   files: |
                       main.js
                       manifest.json
-                      ${{ steps.package.outputs.has_css == 'true' && 'styles.css' || '' }}
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
