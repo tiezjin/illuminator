@@ -5,6 +5,9 @@
 
 ---
 
+![Diagram](assets/diagram.png)
+
+
 ## 🇺🇸 English
 
 A local, lightweight plugin to make white backgrounds transparent, convert into compact WebP format and automatically update link when you directly paste an image or right-click it in the file panel.
