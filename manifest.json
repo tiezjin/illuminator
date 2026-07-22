@@ -1,12 +1,10 @@
-
 {
     "id": "illuminator",
     "name": "Illuminator",
     "version": "1.0.1",
     "minAppVersion": "0.15.0",
-    "description": "Automatically removes white backgrounds from images on paste and converts them to optimized WebP. Perfect for maintaining legibility and visual harmony in light-themed vaults.",
+    "description": "Automatically removes white backgrounds from images on paste and converts them to optimized WebP.",
     "author": "tiezjin",
     "authorUrl": "https://github.com/Tiezjin",
     "isDesktopOnly": true
 }
-

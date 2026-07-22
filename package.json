@@ -13,18 +13,21 @@
 	"keywords": [],
 	"license": "0-BSD",
 	"devDependencies": {
+		"@eslint/js": "9.30.1",
 		"@types/node": "^16.11.6",
+		"@typescript-eslint/eslint-plugin": "^8.63.0",
+		"@typescript-eslint/parser": "^8.63.0",
 		"esbuild": "0.25.5",
+		"eslint": "^9.39.4",
 		"eslint-plugin-obsidianmd": "0.1.9",
 		"globals": "14.0.0",
+		"jiti": "2.6.1",
 		"tslib": "2.4.0",
 		"typescript": "^5.8.3",
-		"typescript-eslint": "8.35.1",
-		"@eslint/js": "9.30.1",
-		"jiti": "2.6.1"
+		"typescript-eslint": "8.35.1"
 	},
 	"dependencies": {
 		"obsidian": "latest"
-	}
-
+	},
+	"packageManager": "pnpm@11.10.0+sha512.0b7f8b98060031904c017e3a41eb187a16d40eeb829b95c4f8cb03681761fc4ab53dd219115b9b447f4dce1a05a214764461e7d3703392a9f32f9511ce8c86c8"
 }

@@ -23,11 +23,6 @@ A local, lightweight plugin to make white backgrounds transparent, convert into 
 * **⚠️ Permanent Change:** This process modifies the image data. Please keep backups of your original images if needed.
 
 
-### 📦 Installation
-1. Download `main.js` and `manifest.json`.
-2. Create folder `.obsidian/plugins/illuminator/` in your vault.
-3. Move the files there and enable in **Settings > Community Plugins**.
-
 ---
 
 ## 🇨🇳 简体中文
@@ -43,10 +38,6 @@ A local, lightweight plugin to make white backgrounds transparent, convert into 
 * **100% 本地化：** 所有处理均在本地 Web Worker 中完成。数据永远不会离开你的文件夹。
 * **⚠️ 永久修改：** 此操作会修改图像数据且不可逆，如有需要请提前备份原始图片。
 
-### 安装步骤
-* 下载 main.js 和 manifest.json 文件。
-* 在您的库 (Vault) 中创建文件夹 .obsidian/plugins/illuminator/。
-* 将下载的文件移动到该文件夹中，并在 设置 > 社区插件 中启用。
 
 ---
 
@@ -63,10 +54,6 @@ Ein lokales, leichtgewichtiges Plugin, um weiße Hintergründe transparent zu ma
 * **100% Lokal:** Die Verarbeitung erfolgt vollständig in einem Web Worker auf deinem Rechner.
 * **⚠️ Permanente Änderung:** Dieser Vorgang verändert die Bilddaten dauerhaft. Bitte bei Bedarf Backups der Originalbilder aufbewahren.
 
-### Installation
-* Laden Sie die Dateien main.js und manifest.json herunter.
-* Erstellen Sie in Ihrem Vault den Ordner .obsidian/plugins/illuminator/.
-* Verschieben Sie die Dateien in diesen Ordner und aktivieren Sie das Plugin unter Einstellungen > Community-Plugins.
 
 ---
 

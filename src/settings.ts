@@ -1,6 +1,6 @@
 
 
-import { App, PluginSettingTab, Setting} from 'obsidian';
+import { App, PluginSettingTab, Setting } from 'obsidian';
 import Illuminator from './main';
 import { t } from './lang';
 
@@ -10,7 +10,9 @@ export interface IlluminatorSettings {
     doWebP: boolean;
     threshold: number;
     doBackup: boolean;
-    
+    doNameChange: boolean;
+    imageNamePattern: string;
+
 }
 
 export const Default_Settings: IlluminatorSettings = {
@@ -18,8 +20,9 @@ export const Default_Settings: IlluminatorSettings = {
     doTransparency: true,
     doWebP: true,
     threshold: 235,
-    doBackup: false
-
+    doBackup: false,
+    doNameChange: false,
+    imageNamePattern: ''
 }
 
 
@@ -47,9 +50,40 @@ export class IlluminatorSettingTab extends PluginSettingTab {
                 .onChange(async (value) => {
                     this.plugin.settings.enableAutoIllumination = value;
                     await this.plugin.saveSettings();
+                    this.display();
                 })
             );
 
+        // change file name
+        if (this.plugin.settings.enableAutoIllumination) {
+            new Setting(containerEl)
+                .setName(t.DO_CHANGE_IMG_NAME)
+                .addToggle(toggle => toggle
+                    .setValue(this.plugin.settings.doNameChange)
+                    .onChange(async (value) => {
+                        this.plugin.settings.doNameChange = value;
+                        await this.plugin.saveSettings();
+                        this.display();
+                    })
+
+                );
+        }
+
+        // add name pattern field
+        if (this.plugin.settings.enableAutoIllumination && this.plugin.settings.doNameChange) {
+            new Setting(containerEl)
+                .setName(t.IMAGE_NAME_PATTERN)
+                .setDesc(t.IMAGE_NAME_PATTERN_DESC)
+                .addText(text => {
+                    text.setValue(this.plugin.settings.imageNamePattern || '')
+                        .onChange(async (value) => {
+                            this.plugin.settings.imageNamePattern = value;
+                            await this.plugin.saveSettings();
+                        });
+
+                    text.inputEl.style.background = "var(--background-secondary)";
+                });
+        }
         // make image transparent
         new Setting(containerEl)
             .setName(t.DO_TRANSPARENCY)
@@ -66,15 +100,24 @@ export class IlluminatorSettingTab extends PluginSettingTab {
             new Setting(containerEl)
                 .setName(t.THRESHOLD)
                 .setDesc(t.THRESHOLD_DESC)
-                .addSlider(slider => slider
-                    .setLimits(0, 255, 5)
-                    .setValue(this.plugin.settings.threshold)
-                    .setDynamicTooltip()
-                    .onChange(async (value) => {
+                .addSlider(slider => {
+                    slider.setLimits(0, 255, 5)
+                        .setValue(this.plugin.settings.threshold);
+
+                    // Helper to update the tooltip
+                    const updateTooltip = (val: number) => {
+                        slider.sliderEl.setAttribute('aria-label', val.toString());
+                    };
+
+                    // Initialize
+                    updateTooltip(this.plugin.settings.threshold);
+
+                    slider.onChange(async (value) => {
+                        updateTooltip(value);
                         this.plugin.settings.threshold = value;
                         await this.plugin.saveSettings();
-                    })
-                );
+                    });
+                });
         }
 
         // convert to WebP
@@ -88,18 +131,22 @@ export class IlluminatorSettingTab extends PluginSettingTab {
                 })
             );
 
+
+
+
+
         //backup choice
         new Setting(containerEl)
-                .setName(t.DO_BACKUP)
-                .setDesc(t.DO_BACKUP_DESC)
-                .addToggle(toggle => toggle
-                    .setValue(this.plugin.settings.doBackup)
-                    .onChange(async (value) => {
-                        this.plugin.settings.doBackup = value;
-                        await this.plugin.saveSettings();
-                    })
-                );
-                
+            .setName(t.DO_BACKUP)
+            .setDesc(t.DO_BACKUP_DESC)
+            .addToggle(toggle => toggle
+                .setValue(this.plugin.settings.doBackup)
+                .onChange(async (value) => {
+                    this.plugin.settings.doBackup = value;
+                    await this.plugin.saveSettings();
+                })
+            );
+
 
     }
 }

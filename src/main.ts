@@ -1,7 +1,7 @@
+// Entry point
 
 
-
-import { Plugin, TFile, Editor, Menu, Notice, normalizePath, Modal, ButtonComponent, App, TAbstractFile, Vault} from 'obsidian';
+import { Plugin, TFile, Editor, Menu, Notice, normalizePath, Modal, ButtonComponent, TextComponent, App, TAbstractFile, Vault } from 'obsidian';
 import { workerCode } from './engine';
 import { IlluminatorSettings, Default_Settings, IlluminatorSettingTab } from './settings';
 import { t } from './lang';
@@ -9,7 +9,7 @@ import { t } from './lang';
 const SUPPORTED_FORMATS = ["png", "jpg", "jpeg", "webp"];
 
 export default class Illuminator extends Plugin {
-    settings!: IlluminatorSettings;
+    declare settings: IlluminatorSettings;
 
     async onload() {
         await this.loadSettings();
@@ -19,7 +19,7 @@ export default class Illuminator extends Plugin {
         this.registerEvent(
             this.app.workspace.on('editor-paste', (evt: ClipboardEvent, editor: Editor) => {
                 if (evt.defaultPrevented) return;
-                
+
                 if (!this.settings.enableAutoIllumination) return;
 
                 const files = evt.clipboardData?.files;
@@ -33,7 +33,7 @@ export default class Illuminator extends Plugin {
                 if (imageFiles.length > 0) {
                     // CRITICAL: Prevent default IMMEDIATELY before any 'await'
                     evt.preventDefault();
-                    
+
                     // Trigger the async processing without blocking the event loop
                     void this.handlePaste(imageFiles, editor).catch(err => {
                         console.error("Illuminator: Failed to process pasted images", err);
@@ -46,10 +46,10 @@ export default class Illuminator extends Plugin {
         // 2. THE RIGHT-CLICK HANDLER (Shared for single and multiple)     
         const addMenu = (menu: Menu, files: TAbstractFile[]) => {
             // Filter for TFile AND the extension in one go
-            const targetFiles = files.filter((f): f is TFile => 
+            const targetFiles = files.filter((f): f is TFile =>
                 f instanceof TFile && SUPPORTED_FORMATS.includes(f.extension.toLowerCase())
             );
-            
+
             if (targetFiles.length === 0) return;
 
             menu.addItem((item) => {
@@ -70,10 +70,11 @@ export default class Illuminator extends Plugin {
                             if (singleFile) {
                                 await this.processFileInPlace(singleFile, false);
                             }
-                        }});
+                        }
                     });
-                };
-            
+            });
+        };
+
         this.registerEvent(
             this.app.workspace.on("file-menu", (menu, file) => addMenu(menu, [file]))
         );
@@ -93,52 +94,52 @@ export default class Illuminator extends Plugin {
     }
 
     async processFileInPlace(file: TFile, isBatch: boolean) {
-    try {
-        // 1. Read the current bytes
-        const data = await this.app.vault.readBinary(file);
-        const parentPath = file.parent ? file.parent.path : "";
+        try {
+            // 1. Read the current bytes
+            const data = await this.app.vault.readBinary(file);
+            const parentPath = file.parent ? file.parent.path : "";
 
-        // 2. Optional: Create backup before processing
-        if (this.settings.doBackup) {
-            const backupPath = normalizePath(`${parentPath}/${file.basename}_ORIGINAL.${file.extension}`);
-            // Only create if it doesn't exist to avoid overwriting backups
-            if (!this.app.vault.getAbstractFileByPath(backupPath)) {
-                await this.app.vault.createBinary(backupPath, data);
+            // 2. Optional: Create backup before processing
+            if (this.settings.doBackup) {
+                const backupPath = normalizePath(`${parentPath}/${file.basename}_ORIGINAL.${file.extension}`);
+                // Only create if it doesn't exist to avoid overwriting backups
+                if (!this.app.vault.getAbstractFileByPath(backupPath)) {
+                    await this.app.vault.createBinary(backupPath, data);
+                }
             }
+
+            // 3. Process in Worker (convert to WebP/Adjust)
+            const result = await this.processInWorker(new Blob([data]));
+            if (!result) return;
+
+            // 4. Generate the target path
+            const finalPath = getUniquePath(parentPath, file.basename, result.ext, this.app.vault);
+            const newBinary = await result.blob.arrayBuffer();
+
+            // 5. THE LINK-SAVING SWAP
+            if (file.path === finalPath) {
+                // Case A: Path is identical (e.g. original was already .webp)
+                // Just update the bytes.
+                await this.app.vault.modifyBinary(file, newBinary);
+            } else {
+                // Case B: Path changed (e.g. .png -> .webp)
+
+                // STEP 1: Rename the file object. 
+                // This triggers Obsidian to find every [[image.png]] and change it to [[image.webp]]
+                await this.app.fileManager.renameFile(file, finalPath);
+
+                // STEP 2: Now that the file has the new name/extension, update its contents
+                // Note: the 'file' object automatically updates its internal path after renameFile
+                await this.app.vault.modifyBinary(file, newBinary);
+            }
+
+            if (!isBatch) new Notice(`Illuminated: ${file.name}`);
+
+        } catch (err) {
+            console.error("Illuminator Error:", err);
+            new Notice(`Error processing ${file.name}`);
         }
-
-        // 3. Process in Worker (convert to WebP/Adjust)
-        const result = await this.processInWorker(new Blob([data]));
-        if (!result) return; 
-
-        // 4. Generate the target path
-        let finalPath = getUniquePath(parentPath, file.basename, result.ext, this.app.vault);
-        const newBinary = await result.blob.arrayBuffer();
-
-        // 5. THE LINK-SAVING SWAP
-        if (file.path === finalPath) {
-            // Case A: Path is identical (e.g. original was already .webp)
-            // Just update the bytes.
-            await this.app.vault.modifyBinary(file, newBinary);
-        } else {
-            // Case B: Path changed (e.g. .png -> .webp)
-            
-            // STEP 1: Rename the file object. 
-            // This triggers Obsidian to find every [[image.png]] and change it to [[image.webp]]
-            await this.app.fileManager.renameFile(file, finalPath);
-            
-            // STEP 2: Now that the file has the new name/extension, update its contents
-            // Note: the 'file' object automatically updates its internal path after renameFile
-            await this.app.vault.modifyBinary(file, newBinary);
-        }
-
-        if (!isBatch) new Notice(`Illuminated: ${file.name}`);
-
-    } catch (err) {
-        console.error("Illuminator Error:", err);
-        new Notice(`Error processing ${file.name}`);
     }
-}
 
     async processInWorker(file: File | Blob): Promise<{ blob: Blob, ext: string } | null> {
         const bitmap = await createImageBitmap(file);
@@ -151,9 +152,6 @@ export default class Illuminator extends Plugin {
             worker.onmessage = (e) => {
                 worker.terminate();
                 URL.revokeObjectURL(workerUrl);
-                
-                const data = e.data as { error?: string; blob: Blob; ext: string };
-
                 if (e.data.error) {
                     console.error("Illuminator Error:", e.data.error);
                     resolve(null);
@@ -170,52 +168,72 @@ export default class Illuminator extends Plugin {
         });
     }
 
-async saveAndInsert(blob: Blob, ext: string, editor: Editor, originalName: string, isPaste: boolean = false) {
-    try {
-        let baseName: string;
-        if (isPaste) {
-            const moment = (window as any).moment;
-            baseName = "IMG_" + moment().format("YYYYMMDDHHmmss");
-        } else {
-            const lastDotIndex = originalName.lastIndexOf(".");
-            baseName = lastDotIndex !== -1 ? originalName.substring(0, lastDotIndex) : originalName;
+    async saveAndInsert(blob: Blob, ext: string, editor: Editor, originalName: string, isPaste: boolean = false) {
+        try {
+            let baseName: string;
+
+            if (isPaste) {
+                let userProvidedName: string | null = null;
+
+                // Only show modal if doNameChange is enabled
+                if (this.settings.doNameChange) {
+                    const defaultName = this.settings.imageNamePattern
+                        || "IMG_" + (window as any).moment().format("YYYYMMDDHHmmss");
+
+                    userProvidedName = await new Promise<string | null>((resolve) => {
+                        new NameImageModal(
+                            this.app,
+                            (n) => resolve(n),
+                            defaultName
+                        ).open();
+                    });
+                }
+
+                // Use user-provided name if valid, otherwise use timestamp
+                if (userProvidedName && userProvidedName.trim() !== "") {
+                    baseName = userProvidedName;
+                    baseName = sanitizeFilename(baseName);
+                } else {
+                    baseName = "IMG_" + (window as any).moment().format("YYYYMMDDHHmmss");
+                }
+            } else {
+                // Not a paste — use original name without extension
+                const lastDotIndex = originalName.lastIndexOf(".");
+                baseName = lastDotIndex !== -1 ? originalName.substring(0, lastDotIndex) : originalName;
+            }
+            const fileName = `${baseName}.${ext}`;
+            const activeFile = this.app.workspace.getActiveFile();
+
+            // This is Obsidian's internal magic that ensures a unique path
+            // If 'fileName' exists, it will return 'base-1.ext'
+            const uniquePath = await this.app.fileManager.getAvailablePathForAttachment(
+                fileName,
+                (activeFile ? activeFile.path : "") as string
+            );
+
+            const buffer = await blob.arrayBuffer();
+            const newFile = await this.app.vault.createBinary(uniquePath, buffer);
+
+            let link = this.app.fileManager.generateMarkdownLink(newFile, activeFile ? activeFile.path : "");
+            if (!link.startsWith("!")) link = "!" + link;
+
+            editor.replaceSelection(link);
+        } catch (err) {
+            console.error("Illuminator Save Error:", err);
+            new Notice(t.ERROR_SAVE + originalName);
         }
-
-        const fileName = `${baseName}.${ext}`;
-        const activeFile = this.app.workspace.getActiveFile();
-
-        
-        // This automatically checks the user's settings and provides the full unique path
-        const uniquePath = await this.app.fileManager.getAvailablePathForAttachment(
-            fileName, 
-            (activeFile ? activeFile.path : "") as string
-        );
-
-        const buffer = await blob.arrayBuffer();
-        const newFile = await this.app.vault.createBinary(uniquePath, buffer);
-        
-        // Generate the link correctly based on the new file's location
-        let link = this.app.fileManager.generateMarkdownLink(newFile, activeFile ? activeFile.path : "");
-        if (!link.startsWith("!")) link = "!" + link;
-
-        editor.replaceSelection(link);
-
-    } catch (err) {
-        console.error("Illuminator Save Error:", err);
-        new Notice(t.ERROR_SAVE + originalName);
     }
-}
 
     // The Batch Report (The only UI feedback)
     logBatchReport(count: number) {
-            new Notice(
-            `${t.REPORT_TITLE}\n${count} ${t.PROCESSED}`, 
-                5000
-            );
+        new Notice(
+            `${t.REPORT_TITLE}\n${count} ${t.PROCESSED}`,
+            5000
+        );
     }
 
-        async loadSettings() { this.settings = Object.assign({}, Default_Settings, await this.loadData()); }
-        async saveSettings() { await this.saveData(this.settings); }
+    async loadSettings() { this.settings = Object.assign({}, Default_Settings, await this.loadData()); }
+    async saveSettings() { await this.saveData(this.settings); }
 }
 
 
@@ -251,3 +269,54 @@ class ConfirmationModal extends Modal {
         new ButtonComponent(btnContainer).setButtonText(t.CANCEL).onClick(() => this.close());
     }
 }
+
+class NameImageModal extends Modal {
+    onSubmit: (name: string | null) => void;
+    defaultName: string;
+
+    constructor(app: App, onSubmit: (name: string | null) => void, defaultName: string) {
+        super(app);
+        this.onSubmit = onSubmit;
+        this.defaultName = defaultName;
+    }
+
+    onOpen() {
+        const { contentEl } = this;
+
+        // One-line: label + input + button
+        const container = contentEl.createDiv();
+        container.style.cssText = "display:flex;align-items:center;gap:8px;padding:12px";
+
+        container.createEl("span", { text: t.ENTER_IMAGE_PROMPT || "Image name:" });
+
+        const textComp = new TextComponent(container);
+        textComp.setValue(this.defaultName);
+        textComp.inputEl.select();
+        textComp.inputEl.focus();
+        textComp.inputEl.style.cssText = "flex:1";
+
+        new ButtonComponent(container)
+            .setButtonText(t.SAVE_BUTTON || "Save")
+            .setCta()
+            .onClick(() => {
+                this.onSubmit(textComp.getValue());
+                this.close();
+            });
+
+        // Enter key support
+        textComp.inputEl.addEventListener("keydown", (e) => {
+            if (e.key === "Enter") {
+                this.onSubmit(textComp.getValue());
+                this.close();
+            }
+        });
+    }
+
+    onClose() {
+        this.onSubmit(null);
+    }
+}
+
+const sanitizeFilename = (name: string): string => {
+    return name.replace(/[<>:"/\\|?*\r\n]/g, '_');
+};
