@@ -1,6 +1,6 @@
 
-.setting-item .illuminator-dim-input {
-    background: var(--background-secondary);
+.setting-item .setting-item-control .illuminator-dim-input {
+    background-color: var(--background-secondary);
 }
 
 .illuminator-modal-container {
