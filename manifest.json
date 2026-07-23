@@ -2,7 +2,7 @@
     "id": "illuminator",
     "name": "Illuminator",
     "version": "1.0.1",
-    "minAppVersion": "1.5.7",
+    "minAppVersion": "1.13.0",
     "description": "Automatically removes white backgrounds from images on paste and converts them to optimized WebP.",
     "author": "tiezjin",
     "authorUrl": "https://github.com/Tiezjin",

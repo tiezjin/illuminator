@@ -298,12 +298,11 @@ class NameImageModal extends Modal {
     onOpen() {
         const { contentEl } = this;
 
-        // Directly chain or use a clear name like wrapperDiv
         const wrapperDiv = contentEl.createDiv({
             cls: "illuminator-modal-container"
         });
 
-        wrapperDiv.createEl("span", { text: t.ENTER_IMAGE_PROMPT || "Image name:" });
+        wrapperDiv.createSpan({ text: t.ENTER_IMAGE_PROMPT || "Image name:" });
 
         const textComp = new TextComponent(wrapperDiv);
         textComp.setValue(this.defaultName);
