@@ -34,6 +34,8 @@ export class IlluminatorSettingTab extends PluginSettingTab {
         this.plugin = plugin;
     }
 
+
+
     display(): void {
         const { containerEl } = this;
         containerEl.empty();
@@ -81,7 +83,7 @@ export class IlluminatorSettingTab extends PluginSettingTab {
                             await this.plugin.saveSettings();
                         });
 
-                    text.inputEl.style.background = "var(--background-secondary)";
+                    text.inputEl.addClass("illuminator-dim-input")
                 });
         }
         // make image transparent

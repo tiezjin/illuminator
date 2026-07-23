@@ -8,6 +8,13 @@ import { t } from './lang';
 
 const SUPPORTED_FORMATS = ["png", "jpg", "jpeg", "webp"];
 
+export interface WorkerMessage {
+    error?: string;
+    blob?: Blob;
+    ext?: string;
+}
+
+
 export default class Illuminator extends Plugin {
     declare settings: IlluminatorSettings;
 
@@ -149,10 +156,11 @@ export default class Illuminator extends Plugin {
         const worker = new Worker(workerUrl);
 
         return new Promise((resolve) => {
-            worker.onmessage = (e) => {
+            worker.onmessage = (e: MessageEvent<WorkerMessage>) => {
                 worker.terminate();
                 URL.revokeObjectURL(workerUrl);
-                if (e.data.error) {
+
+                if (e.data.error || !e.data.blob || !e.data.ext) {
                     console.error("Illuminator Error:", e.data.error);
                     resolve(null);
                 } else {
@@ -178,7 +186,7 @@ export default class Illuminator extends Plugin {
                 // Only show modal if doNameChange is enabled
                 if (this.settings.doNameChange) {
                     const defaultName = this.settings.imageNamePattern
-                        || "IMG_" + (window as any).moment().format("YYYYMMDDHHmmss");
+                        || "IMG_" + generateTimestamp();
 
                     userProvidedName = await new Promise<string | null>((resolve) => {
                         new NameImageModal(
@@ -194,7 +202,7 @@ export default class Illuminator extends Plugin {
                     baseName = userProvidedName;
                     baseName = sanitizeFilename(baseName);
                 } else {
-                    baseName = "IMG_" + (window as any).moment().format("YYYYMMDDHHmmss");
+                    baseName = "IMG_" + generateTimestamp();
                 }
             } else {
                 // Not a paste — use original name without extension
@@ -208,7 +216,7 @@ export default class Illuminator extends Plugin {
             // If 'fileName' exists, it will return 'base-1.ext'
             const uniquePath = await this.app.fileManager.getAvailablePathForAttachment(
                 fileName,
-                (activeFile ? activeFile.path : "") as string
+                activeFile ? activeFile.path : ""
             );
 
             const buffer = await blob.arrayBuffer();
@@ -232,7 +240,13 @@ export default class Illuminator extends Plugin {
         );
     }
 
-    async loadSettings() { this.settings = Object.assign({}, Default_Settings, await this.loadData()); }
+    async loadSettings() {
+        this.settings = Object.assign(
+            {},
+            Default_Settings,
+            (await this.loadData()) as Partial<typeof Default_Settings>
+        );
+    }
     async saveSettings() { await this.saveData(this.settings); }
 }
 
@@ -273,6 +287,7 @@ class ConfirmationModal extends Modal {
 class NameImageModal extends Modal {
     onSubmit: (name: string | null) => void;
     defaultName: string;
+    private submitted = false; // Add a flag to track state
 
     constructor(app: App, onSubmit: (name: string | null) => void, defaultName: string) {
         super(app);
@@ -283,9 +298,8 @@ class NameImageModal extends Modal {
     onOpen() {
         const { contentEl } = this;
 
-        // One-line: label + input + button
         const container = contentEl.createDiv();
-        container.style.cssText = "display:flex;align-items:center;gap:8px;padding:12px";
+        container.addClass("illuminator-modal-container");
 
         container.createEl("span", { text: t.ENTER_IMAGE_PROMPT || "Image name:" });
 
@@ -293,30 +307,39 @@ class NameImageModal extends Modal {
         textComp.setValue(this.defaultName);
         textComp.inputEl.select();
         textComp.inputEl.focus();
-        textComp.inputEl.style.cssText = "flex:1";
+        textComp.inputEl.addClass("illuminator-modal-input");
+
+        const submitAction = () => {
+            if (this.submitted) return;
+            this.submitted = true;
+            this.onSubmit(textComp.getValue());
+            this.close();
+        };
 
         new ButtonComponent(container)
             .setButtonText(t.SAVE_BUTTON || "Save")
             .setCta()
-            .onClick(() => {
-                this.onSubmit(textComp.getValue());
-                this.close();
-            });
+            .onClick(() => submitAction());
 
-        // Enter key support
         textComp.inputEl.addEventListener("keydown", (e) => {
             if (e.key === "Enter") {
-                this.onSubmit(textComp.getValue());
-                this.close();
+                submitAction();
             }
         });
     }
 
     onClose() {
-        this.onSubmit(null);
+        if (!this.submitted) {
+            this.onSubmit(null);
+        }
     }
 }
 
 const sanitizeFilename = (name: string): string => {
     return name.replace(/[<>:"/\\|?*\r\n]/g, '_');
+};
+
+const generateTimestamp = (): string => {
+    const win = window as unknown as { moment: () => { format: (fmt: string) => string } };
+    return win.moment().format("YYYYMMDDHHmmss");
 };

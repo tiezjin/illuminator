@@ -1,0 +1,15 @@
+
+.illuminator-dim-input {
+    background: var(--background-secondary) !important;
+}
+
+.illuminator-modal-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px;
+}
+
+.illuminator-modal-input {
+    flex: 1;
+}

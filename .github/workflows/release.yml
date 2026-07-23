@@ -23,13 +23,19 @@ jobs:
               uses: actions/setup-node@v4
               with:
                   node-version: "20"
-                  cache: "npm"
+                  cache: "pnpm"
 
+            
+            - name: Install pnpm
+              uses: pnpm/action-setup@v4
+              with:
+                  version: 8
+              
             - name: Install Dependencies
-              run: npm ci
+              run: pnpm install 
 
             - name: Build Plugin
-              run: npm run build
+              run: pnpm run build
 
             - name: Generate artifact attestation
               uses: actions/attest-build-provenance@v4
@@ -37,6 +43,7 @@ jobs:
                 subject-path: |
                   main.js
                   manifest.json
+                  styles.css 
 
             - name: Create GitHub Release
               id: create_release
@@ -51,5 +58,6 @@ jobs:
                   files: |
                       main.js
                       manifest.json
+                      styles.css 
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
