@@ -298,12 +298,14 @@ class NameImageModal extends Modal {
     onOpen() {
         const { contentEl } = this;
 
-        const container = contentEl.createDiv();
-        container.addClass("illuminator-modal-container");
+        // Directly chain or use a clear name like wrapperDiv
+        const wrapperDiv = contentEl.createDiv({
+            cls: "illuminator-modal-container"
+        });
 
-        container.createEl("span", { text: t.ENTER_IMAGE_PROMPT || "Image name:" });
+        wrapperDiv.createEl("span", { text: t.ENTER_IMAGE_PROMPT || "Image name:" });
 
-        const textComp = new TextComponent(container);
+        const textComp = new TextComponent(wrapperDiv);
         textComp.setValue(this.defaultName);
         textComp.inputEl.select();
         textComp.inputEl.focus();
@@ -316,7 +318,7 @@ class NameImageModal extends Modal {
             this.close();
         };
 
-        new ButtonComponent(container)
+        new ButtonComponent(wrapperDiv)
             .setButtonText(t.SAVE_BUTTON || "Save")
             .setCta()
             .onClick(() => submitAction());

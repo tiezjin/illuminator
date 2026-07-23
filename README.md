@@ -1,9 +1,8 @@
-
 # Illuminator
 
-> **Language** [English](#-english) | [简体中文](#-简体中文) | [Deutsch](#-deutsch)
+> **Language** [English](#english) | [简体中文](#user-content-简体中文) | [Deutsch](#deutsch)
 
-[📝 Changelog / 更新日志](#changelog)
+[📝 Changelog](#changelog) / 更新日志
 
 ---
 
@@ -98,7 +97,7 @@ Beide Modi unterstützen:
 
 ---
 
-## 📝 Changelog
+## Changelog
 
 ### v1.0.1 → v1.0.2
 
